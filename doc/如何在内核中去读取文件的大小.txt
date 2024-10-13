@@ -1,0 +1,19 @@
+方法一：使用struct kstat结构体和vfs_stat（）函数，使用方法和功能类似于应用态的struct stat和stat（）函数。
+　　举例：读取文件
+　　struct kstat stat;
+　　char *file_path = “/text.txt”;
+　　int file_size = 0;
+　　ret = vfs_stat（file_path， &stat）;
+　　file_size = （int）stat.size;/*file_size存放的是文件text.txt的大小*/
+　　方法二：在Linux-2.6.32内核中，struct file *fp = filp_open（）成员中无f_inode成员;
+　　举例：
+　　char *file_path = “/text.txt”;
+　　int file_size = 0;
+　　struct file *fp = filp_open（file_path， O_RDONLY， 0）;
+　　file_size = fp-》f_dentry-》d_inode-》i_size; /*fp-》f_dentry-》无成员函数显示是因为内核使用#define f_dentry f_path.dentry，不影响使用，可以直接写成fp-》f_dentry-》d_inode-》i_size*/
+　　方法三：在Linux-4.xx内核中，struct file *fp = filp_open（）成员中有f_inode成员;
+　　举例：
+　　char *file_path = “/text.txt”;
+　　int file_size = 0;
+　　struct file *fp = filp_open（file_path， O_RDONLY， 0）;
+　　file_size = fp-》f__inode-》i_size; 

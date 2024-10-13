@@ -1,0 +1,193 @@
+Linux 内核读写文件
+
+需要调试的驱动程中读写文件数据，比如说当驱动需要记录的日志比较多的情况下，可以将printk()函数打印的信息都写到文件做后续分析。在kernel中操作文件没有标准库可用，需要利用kernel的一些函数，这些函数主要有： filp_open() filp_close(), kernel_read()，kernel_write()这些函数在linux/fs.h和asm/uaccess.h头文件中声明。下面介绍主要步骤：
+一、打开文件
+
+filp_open()在kernel中可以打开文件，其原形如下：
+strcut file* filp_open(const char* filename, int open_mode, int mode);
+该函数返回strcut file*结构指针，供后继函数操作使用，该返回值用IS＿ERR（）来检验其有效性。
+
+参数说明：
+filename： 表明要打开或创建文件的名称（包括路径部分）。在内核中打开的文件时需要注意打开的时机，很容易出现需要打开文件的驱动很早就加载并打开文件，但需要打开的文件所在设备还不有挂载到文件系统中，而导致打开失败。
+
+open_mode： 文件的打开方式，其取值与标准库中的open相应参数类似，可以取O_CREAT,O_RDWR,O_RDONLY等。
+mode： 创建文件时使用，设置创建文件的读写权限，其它情况可以匆略设为0
+二、读写文件
+
+kernel中文件的读写操作可以使用kernel_read()和kernel_write，均为内核导出函数内核函数原型为：
+
+ssize_t kernel_read(struct file *file, void *buf, size_t count, loff_t *pos)
+{
+	ssize_t ret;
+
+	ret = rw_verify_area(READ, file, pos, count);
+	if (ret)
+		return ret;
+	return __kernel_read(file, buf, count, pos);
+}
+EXPORT_SYMBOL(kernel_read);
+
+ssize_t kernel_write(struct file *file, const void *buf, size_t count,
+			    loff_t *pos)
+{
+	ssize_t ret;
+
+	ret = rw_verify_area(WRITE, file, pos, count);
+	if (ret)
+		return ret;
+
+	file_start_write(file);
+	ret =  __kernel_write(file, buf, count, pos);
+	file_end_write(file);
+	return ret;
+}
+EXPORT_SYMBOL(kernel_write);
+
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+    20
+    21
+    22
+    23
+    24
+    25
+    26
+
+里面的参数和ring3读写是一样的，拿到filp句柄之后就可以对文件进行读写操作了。
+三、关闭文件
+
+int filp_close(struct file*filp, fl_owner_t id);
+该函数的使用很简单，第二个参数一般传递NULL值，也有用current->files作为实参的。
+
+使用以上函数的其它注意点：
+
+    其实Linux Kernel组成员不赞成在kernel中独立的读写文件（这样做可能会影响到策略和安全问题），对内核需要的文件内容，最好由应用层配合完成。
+    在可加载的kernel module中使用这种方式读写文件可能使模块加载失败，原因是内核可能没有EXPORT你所需要的所有这些函数。
+    3.分析以上某些函数的参数可以看出，这些函数的正确运行需要依赖于进程环境，因此，有些函数不能在中断的handle或Kernel中不属于任可进程的代码中执行，否则可能出现崩溃，要避免这种情况发生，可以在kernel中创建内核线程，将这些函数放在线程环境下执行(创建内核线程的方式请参数kernel_thread()函数）。
+
+四、驱动代码
+
+#include <asm/uaccess.h>
+
+#define MY_FILE "/tmp/log.txt"
+
+char buf[256];
+loff_t pos = 0;
+struct file *filep = NULL;
+
+static int __init init(void)
+{
+        printk("Hello, I'm the module that intends to write messages to file.\n");
+
+        if(filep == NULL) {
+                filep = filp_open(MY_FILE, O_RDWR | O_APPEND | O_CREAT, 0644);
+        }
+
+        if (IS_ERR(filep)) {
+                printk("Open file %s error\n", MY_FILE);
+                return -1;
+        }
+
+        sprintf(buf,"%s\n", "This is test message!");
+
+        memset(buf, 0, sizeof(buf));
+        kernel_write(filep, buf, strlen(buf), &pos);
+
+        memset(buf, 0, sizeof(buf));
+        kernel_read(filep, buf, sizeof(buf), &pos);
+        printk("Read buf -> %s\n", buf);
+
+        return 0;
+}
+
+static void __exit fini(void)
+{
+        printk("Kernel read/write exit\n");
+
+        if(filep != NULL) {
+                filp_close(filep, NULL);
+        }
+}
+
+module_init(init);
+module_exit(fini);
+MODULE_LICENSE("GPL");
+
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+    20
+    21
+    22
+    23
+    24
+    25
+    26
+    27
+    28
+    29
+    30
+    31
+    32
+    33
+    34
+    35
+    36
+    37
+    38
+    39
+    40
+    41
+    42
+    43
+    44
+    45
+
+注意事项：
+
+1、当驱动需要持续读写文件的话，需要考虑并发的情况，需要给buf的读写加锁。
+
+查看log日志：
+
+curtis@curtis-Aspire-E5-471G:~/write_code/kernel_write$ dmesg
+[145731.662192] Hello, I'm the module that intends to write messages to file.
+[145731.662206] pos -> 0
+[145731.662210] Read buf -> This is test message!
+curtis@curtis-Aspire-E5-471G:~/write_code/kernel_write$ cat /tmp/log.txt
+This is test message!
+————————————————
+版权声明：本文为CSDN博主「Configure-Handle」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/qq_42931917/article/details/122054256
