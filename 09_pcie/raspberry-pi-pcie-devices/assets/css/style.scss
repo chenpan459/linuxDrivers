@@ -1,0 +1,101 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+// Site layout.
+#header_wrap .inner {
+  padding: 40px 10px 10px;
+}
+
+.inner {
+  max-width: 1000px;
+}
+
+#sponsor_banner {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 200px;
+  z-index: 12;
+  padding: 10px 40px 10px 10px;
+  color: #fff;
+  background: url("/images/heart.png") #db61a2 no-repeat 90% 50%;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+#project_title {
+  background: none;
+  padding: 0;
+
+  a {
+    color: inherit;
+  }
+}
+
+#project_tagline {
+  font-size: 18px;
+}
+
+// Index pages.
+.card_table,
+.board_table {
+  width: 100%;
+
+  td {
+    vertical-align: top;
+  }
+
+  .links {
+    margin-top: 1em;
+    font-size: .8em;
+  }
+}
+
+.card_table_picture,
+.board_table_picture {
+  max-width: 100px;
+  max-height: 100px;
+  margin: 0;
+}
+
+.card_picture_td,
+.board_picture_td {
+  width: 100px;
+}
+
+// Detail pages.
+#card_title,
+#board_title {
+  font-size: 24px;
+}
+
+.card_picture,
+.board_picture {
+  text-align: center;
+  width: 100%;
+
+  img {
+    max-width: 500px;
+  }
+}
+
+.card_details_table,
+.board_details_table {
+  margin: 0 auto;
+}
+
+// Responsive styles.
+@media screen and (max-width: 800px) {
+  img {
+    height: auto;
+  }
+
+  .card_picture img,
+  .board_picture img {
+    max-width: 100%;
+  }
+}
