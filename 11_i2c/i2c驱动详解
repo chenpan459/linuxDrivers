@@ -1,0 +1,4 @@
+
+1、检查 I2C 总线： 使用 i2cdetect 工具检查 I2C 总线和设备。
+sudo i2cdetect -y 1  # 1 是 I2C 总线编号
+
