@@ -1,4 +1,5 @@
-在 PCIe 虚拟化中,物理功能(Physical Function,PF)和虚拟功能(Virtual Function,VF)是两个重要的概念,特别是在 SR-IOV(Single Root I/O Virtualization)技术中。PF 是物理设备的主要功能,而 VF 是从 PF 派生出来的虚拟设备,用于虚拟化环境中分配给虚拟机。
+在 PCIe 虚拟化中,物理功能(Physical Function,PF)和虚拟功能(Virtual Function,VF)是两个重要的概念,特别是在 SR-IOV(Single Root I/O Virtualization)技术中。
+PF 是物理设备的主要功能,而 VF 是从 PF 派生出来的虚拟设备,用于虚拟化环境中分配给虚拟机。
 
 PF 和 VF 的关系
 物理功能(PF):
@@ -26,7 +27,6 @@ lspci | grep Virtual
 03:10.2 Ethernet controller: Intel Corporation 82599 Ethernet Controller Virtual Function (rev 01)
 ...
 绑定 VF 驱动程序: 将 VF 绑定到适当的驱动程序。例如,将 VF 绑定到 ixgbevf 驱动程序:
-
 echo 0000:03:10.1 > /sys/bus/pci/drivers/ixgbevf/bind
 
 
@@ -113,5 +113,16 @@ PCIe 6.0	64.0 GT/s	~8 GB/s (7877 MB/s)	    ~8 GB/s	   ~16 GB/s	     ~32 GB/s	   
 
 
 
-
+在 Linux 系统中，可以通过重新扫描 PCIe 总线来检测新设备或移除已不存在的设备。以下是重新扫描 PCIe 总线的步骤：
+重新扫描 PCIe 总线
+使能 PCIe 总线的重新扫描：
+echo 1 | sudo tee /sys/bus/pci/rescan
+这个命令会触发系统重新扫描所有 PCIe 总线，检测新设备并移除已不存在的设备。
+示例：重新扫描特定 PCIe 设备
+如果你只想重新扫描特定的 PCIe 设备，可以使用以下步骤：
+lspci
+找到设备的 PCI 地址： 使用 lspci 命令找到设备的 PCI 地址，例如 0000:00:1c.0：
+echo 1 | sudo tee /sys/bus/pci/devices/0000:00:1c.0/remove
+重新扫描以重新发现设备：
+echo 1 | sudo tee /sys/bus/pci/rescan
 
