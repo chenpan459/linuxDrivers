@@ -11,9 +11,11 @@ static DECLARE_WAIT_QUEUE_HEAD(my_wait_queue);
 static int condition = 0;
 static struct task_struct *my_thread;
 static struct hrtimer my_timer;
-
+static ktime_t sleep_time;
+static ktime_t wake_time;
 enum hrtimer_restart timer_callback(struct hrtimer *timer) {
     condition = 1;
+    sleep_time = ktime_get(); // 记录进入睡眠的时间
     wake_up_interruptible(&my_wait_queue);
     return HRTIMER_NORESTART;
 }
@@ -23,10 +25,14 @@ static int my_thread_fn(void *data) {
 
     while (!kthread_should_stop()) {
         wait_event_interruptible(my_wait_queue, condition != 0);
+         wake_time = ktime_get(); // 记录被唤醒的时间
         if (condition == 1) {
             printk(KERN_INFO "Condition met, thread running\n");
             condition = 0;
         }
+        // 计算唤醒所耗时间 Wake-up time: 70168 ns
+        s64 elapsed_time_ns = ktime_to_ns(ktime_sub(wake_time, sleep_time));
+        printk(KERN_INFO "Wake-up time: %lld ns\n", elapsed_time_ns);
     }
 
     printk(KERN_INFO "Thread stopping\n");

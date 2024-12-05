@@ -10,6 +10,8 @@
 static DECLARE_WAIT_QUEUE_HEAD(my_wait_queue);
 static int condition = 0;
 static struct task_struct *my_thread;
+static ktime_t sleep_time;
+static ktime_t wake_time;
 static int my_thread_fn(void *data) {
     long timeout = msecs_to_jiffies(5000); // 超时时间为 5000 毫秒
 
@@ -17,6 +19,7 @@ static int my_thread_fn(void *data) {
 
     while (!kthread_should_stop()) {
         long ret = wait_event_interruptible_timeout(my_wait_queue, condition != 0, timeout);
+        wake_time = ktime_get(); // 记录被唤醒的时间
         if (ret == 0) {
             printk(KERN_INFO "Timeout occurred\n");
         } else if (ret > 0) {
@@ -25,6 +28,9 @@ static int my_thread_fn(void *data) {
         } else {
             printk(KERN_INFO "Interrupted by signal\n");
         }
+        // 计算唤醒所耗时间 Wake-up time: 932844 ns
+        s64 elapsed_time_ns = ktime_to_ns(ktime_sub(wake_time, sleep_time));
+        printk(KERN_INFO "Wake-up time: %lld ns\n", elapsed_time_ns);
     }
 
     printk(KERN_INFO "Thread stopping\n");
@@ -43,6 +49,7 @@ static int __init my_module_init(void) {
     msleep(2000); // 模拟一些延迟
 
     condition = 1;
+    sleep_time = ktime_get(); // 记录进入睡眠的时间
     wake_up_interruptible(&my_wait_queue);
 
     return 0;

@@ -8,15 +8,24 @@
 static DECLARE_COMPLETION(my_completion);
 static struct task_struct *my_thread;
 
+static ktime_t sleep_time;
+static ktime_t wake_time;
+
 static int my_thread_fn(void *data) {
+    int ret=0;
     printk(KERN_INFO "Thread started\n");
 
     while (!kthread_should_stop()) {
-        if (wait_for_completion_interruptible_timeout(&my_completion, msecs_to_jiffies(5000)) == 0) {
+        ret =wait_for_completion_interruptible_timeout(&my_completion, msecs_to_jiffies(5000));
+        wake_time = ktime_get(); // 记录被唤醒的时间        
+        if ( ret== 0) {
             printk(KERN_INFO "Timeout occurred\n");
         } else {
             printk(KERN_INFO "Completion signaled, thread running\n");
         }
+         // 计算唤醒所耗时间 Wake-up time: 70168 ns
+        s64 elapsed_time_ns = ktime_to_ns(ktime_sub(wake_time, sleep_time));
+        printk(KERN_INFO "Wake-up time: %lld ns\n", elapsed_time_ns);
     }
 
     printk(KERN_INFO "Thread stopping\n");
@@ -34,6 +43,7 @@ static int __init my_module_init(void) {
 
     msleep(2000); // 模拟一些延迟
 
+    sleep_time = ktime_get(); // 记录进入睡眠的时间
     complete(&my_completion);
 
     return 0;
