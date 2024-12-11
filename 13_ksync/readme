@@ -63,3 +63,28 @@ Wake-up time: 70168 ns
 Wake-up time: 932844 ns
 
 
+
+13.2 休眠与唤醒
+13.2.1 内核休眠函数
+内核源码路径：include\linux\wait.h。
+函数名 	描述
+wait_event(wq, condition) 	                            休眠，直至 condition 为真；休眠期间不能被打断。
+wait_event_interruptible(wq, condition) 	              休眠，直至 condition 为真；休眠期间可被打断，包括信号。
+wait_event_timeout(wq, condition, timeout) 	               休眠，直至 condition 为真或超时；休眠期间不能被打断。
+wait_event_interruptible_timeout(wq, condition, timeout) 	休眠，直至 condition 为真或超时；休眠期间可被打断，包括信号。
+13.2.2 内核唤醒函数
+
+内核源码路径：include\linux\wait.h。
+函数名 	                            描述
+wake_up_interruptible(x) 	       唤醒 x 队列中状态为“TASK_INTERRUPTIBLE”的线程，只唤醒其中的一个线程
+wake_up_interruptible_nr(x, nr) 	唤醒 x 队列中状态为“TASK_INTERRUPTIBLE”的线程，只唤醒其中的 nr 个线程
+wake_up_interruptible_all(x) 	    唤醒 x 队列中状态为“TASK_INTERRUPTIBLE”的线程，唤醒其中的所有线程
+wake_up(x)                      	唤醒 x 队列中状态为“TASK_INTERRUPTIBLE”或“TASK_UNINTERRUPTIBLE”的线程，只唤醒其中的一个线程
+wake_up_nr(x, nr) 	                唤醒 x 队列中状态为“TASK_INTERRUPTIBLE”或“TASK_UNINTERRUPTIBLE”的线程，只唤醒其中 nr 个线程
+wake_up_all(x) 	                   唤醒 x 队列中状态为“TASK_INTERRUPTIBLE”或“TASK_UNINTERRUPTIBLE”的线程，唤醒其中的所有线程
+
+
+
+
+
+
